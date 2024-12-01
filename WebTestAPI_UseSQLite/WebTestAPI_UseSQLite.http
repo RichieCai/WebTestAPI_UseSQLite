@@ -1,0 +1,6 @@
+@WebTestAPI_UseSQLite_HostAddress = http://localhost:5002
+
+GET {{WebTestAPI_UseSQLite_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
