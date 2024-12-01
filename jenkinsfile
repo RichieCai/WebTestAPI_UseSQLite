@@ -1,0 +1,70 @@
+pipeline {
+    agent any
+    environment {
+        BUILD_DIR = 'build' // 定義輸出目錄
+        PUBLISH_DIR = 'publish' // 定義發布目錄
+        IIS_SITE_PATH = 'D:\\wwwroot\\WebTestAPI_UseSQLite' // IIS 站點目錄
+        MSBUILD_PATH = 'C:\\Program Files\\dotnet\\dotnet.exe' // .NET Core SDK 路徑
+    }
+    stages {
+        stage('Checkout') {
+            steps {
+				git branch: 'main', url: 'https://github.com/RichieCai/WebTestAPI_UseSQLite.git'
+            }
+        }
+        stage('Build') {
+            steps {
+                script {
+                    // 確保目標文件夾存在
+                    bat "if not exist ${BUILD_DIR} mkdir ${BUILD_DIR}"
+
+                    // 執行編譯
+                    bat "\"${MSBUILD_PATH}\" build WebTestAPI_UseSQLite.sln -c Release -o ${BUILD_DIR}"
+                }
+            }
+        }
+		stage('Test') {
+            steps {
+                script {
+                    // 執行測試
+                    bat "\"${MSBUILD_PATH}\" test WebTestAPI_UseSQLite.sln -c Release"
+                }
+            }
+        }
+        stage('Pulish') {
+            steps {
+                script {
+                    // 確保目標文件夾存在
+                    bat  "if not exist ${PUBLISH_DIR} mkdir ${PUBLISH_DIR}"
+
+                    // 執行 dotnet publish
+                    bat "\"${MSBUILD_PATH}\" publish WebTestAPI_UseSQLite.sln -c Release -o ${PUBLISH_DIR}"
+					
+                }
+            }
+        }
+		stage('Deploy to IIS') {
+			steps {
+				script {
+                    // 使用 PowerShell 部署到 IIS
+					// 停止應用程序池：防止部署期間應用文件被鎖定
+					// 刪除舊文件：清除舊版本文件。
+					// 複製新文件：將新版本的應用文件複製到 IIS 站點目錄。
+					// 啟動應用程序池：重新啟動應用程序。
+					bat """
+						powershell -Command "Stop-WebAppPool -Name 'WebTestAPI_UseSQLite'; Remove-Item -Recurse -Force '${IIS_SITE_PATH}\\*'; Copy-Item -Path '${PUBLISH_DIR}\\*' -Destination '${IIS_SITE_PATH}' -Recurse; Start-WebAppPool -Name 'WebTestAPI_UseSQLite';"
+					"""
+
+				}
+			}
+		}
+    }
+    post {
+        success {
+            echo 'Build, test, and publish successful!'
+        }
+		failure {
+            echo 'Pipeline failed. Check the logs for details.'
+        }
+    }
+}
