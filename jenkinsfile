@@ -31,7 +31,7 @@ pipeline {
                 }
             }
         }
-        stage('Pulish') {
+        stage('Publish') {
             steps {
                 script {
                     // 確保目標文件夾存在
